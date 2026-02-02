@@ -102,7 +102,7 @@ function loop(time){
 }
 requestAnimationFrame(loop);
 
-// ---------- CONTROLES ----------
+// ---------- CONTROLES PC ----------
 document.addEventListener("keydown",e=>{
     if(!gameOver){
         if(e.key==="ArrowLeft" && playerLane>0) playerLane--;
@@ -111,20 +111,24 @@ document.addEventListener("keydown",e=>{
     }else if(e.key==="r"){restart();}
 });
 
-// ---------- TOUCH & SWIPE ----------
-let touchStartX=null;
-canvas.addEventListener("touchstart",e=>{ 
+// ---------- TOUCH & SWIPE MOBILE ----------
+let touchStartX=null, swipeLocked=false;
+
+canvas.addEventListener("touchstart", e => { 
     e.preventDefault();
-    if(gameOver){restart(); return;}
+    if(gameOver){ restart(); return; }
     touchStartX=e.touches[0].clientX;
+    swipeLocked=false;
 });
-canvas.addEventListener("touchmove",e=>{
-    if(touchStartX===null) return;
+
+canvas.addEventListener("touchmove", e => {
+    if(touchStartX===null || swipeLocked) return;
     let diff=e.touches[0].clientX-touchStartX;
-    if(diff>30 && playerLane<2){playerLane++;playerRect.x=LANES[playerLane];touchStartX=e.touches[0].clientX;}
-    if(diff<-30 && playerLane>0){playerLane--;playerRect.x=LANES[playerLane];touchStartX=e.touches[0].clientX;}
+    if(diff>40 && playerLane<2){playerLane++;playerRect.x=LANES[playerLane];swipeLocked=true;}
+    if(diff<-40 && playerLane>0){playerLane--;playerRect.x=LANES[playerLane];swipeLocked=true;}
 });
-canvas.addEventListener("touchend",()=>{touchStartX=null});
+
+canvas.addEventListener("touchend", ()=>{touchStartX=null; swipeLocked=false;});
 </script>
 </body>
 </html>
