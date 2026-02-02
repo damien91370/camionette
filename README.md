@@ -68,7 +68,7 @@ function drawBackground(offset){
 function drawUI(){
     ctx.fillStyle="white";ctx.font="20px Arial";ctx.fillText("Score : "+score,10,25);
     ctx.fillStyle="gold";ctx.fillText("Best : "+bestScore,10,50);
-    if(gameOver){ctx.fillStyle="red";ctx.font="20px Arial";ctx.fillText("GAME OVER - toucher pour restart",40,H/2);}
+    if(gameOver){ctx.fillStyle="red";ctx.font="20px Arial";ctx.fillText("GAME OVER - appuyez sur R ou touchez pour restart",40,H/2);}
 }
 
 // ---------- RESTART ----------
