@@ -48,13 +48,14 @@ let lastSpawn = 0;
 let bestScore = Number(localStorage.getItem("bestScore") || 0);
 
 // ----------- TEXTURES DESSINÉES -----------
+
 function makeVan(){
     let s = document.createElement("canvas");
     s.width = 60; s.height = 90;
     let c = s.getContext("2d");
-    c.fillStyle="#dddddd"; c.fillRect(5,5,50,80); // corps
-    c.fillStyle="#78b4ff"; c.fillRect(10,8,40,18); // vitre
-    c.fillStyle="#aad2ff"; c.fillRect(10,40,40,20); // vitre bas
+    c.fillStyle="#dddddd"; c.fillRect(5,5,50,80);
+    c.fillStyle="#78b4ff"; c.fillRect(10,8,40,18);
+    c.fillStyle="#aad2ff"; c.fillRect(10,40,40,20);
     c.fillStyle="#ffff78"; c.beginPath(); c.arc(15,5,4,0,Math.PI*2); c.fill();
     c.beginPath(); c.arc(45,5,4,0,Math.PI*2); c.fill();
     c.fillStyle="#1e1e1e"; c.fillRect(0,20,5,18); c.fillRect(55,20,5,18);
@@ -68,8 +69,9 @@ function makeChild(){
     c.fillStyle="#ffdcb4"; c.beginPath(); c.arc(20,12,10,0,Math.PI*2); c.fill();
     c.fillStyle="#000"; c.beginPath(); c.arc(16,12,2,0,Math.PI*2); c.fill();
     c.beginPath(); c.arc(24,12,2,0,Math.PI*2); c.fill();
-    c.fillStyle="#ff5050"; c.fillRect(10,22,20,22); // corps
-    c.strokeStyle="#3c3c3c"; c.lineWidth=3; c.beginPath(); c.moveTo(15,44); c.lineTo(15,54); c.stroke();
+    c.fillStyle="#ff5050"; c.fillRect(10,22,20,22);
+    c.strokeStyle="#3c3c3c"; c.lineWidth=3;
+    c.beginPath(); c.moveTo(15,44); c.lineTo(15,54); c.stroke();
     c.beginPath(); c.moveTo(25,44); c.lineTo(25,54); c.stroke();
     return s;
 }
@@ -81,7 +83,8 @@ function makePolice(){
     c.fillStyle="#000"; c.beginPath(); c.arc(16,12,2,0,Math.PI*2); c.fill();
     c.beginPath(); c.arc(24,12,2,0,Math.PI*2); c.fill();
     c.fillStyle="#000078"; c.fillRect(10,22,20,22);
-    c.strokeStyle="#3c3c3c"; c.lineWidth=3; c.beginPath(); c.moveTo(15,44); c.lineTo(15,54); c.stroke();
+    c.strokeStyle="#3c3c3c"; c.lineWidth=3;
+    c.beginPath(); c.moveTo(15,44); c.lineTo(15,54); c.stroke();
     c.beginPath(); c.moveTo(25,44); c.lineTo(25,54); c.stroke();
     return s;
 }
@@ -105,30 +108,39 @@ function makeTrash(){
     return s;
 }
 
-// ----------- INIT TEXTURES -----------
 const VAN_IMG = makeVan();
 const CHILD_IMG = makeChild();
 const POLICE_IMG = makePolice();
 const CAR_IMG = makeCar();
 const TRASH_IMG = makeTrash();
 
-// ----------- PLAYER -----------
 let player_rect = {x: LANES[playerLane], y:PLAYER_Y, w:60, h:90};
 
 // ----------- SPAWN -----------
+
 function spawn(){
     for(let i=0;i<2;i++){
-        children.push({img:CHILD_IMG, x:LANES[Math.floor(Math.random()*3)], y:-40});
+        children.push({img:CHILD_IMG, x:LANES[Math.floor(Math.random()*3)], y:-40, w:40, h:55});
     }
     if(Math.random()<0.8){
-        police.push({img:POLICE_IMG, x:LANES[Math.floor(Math.random()*3)], y:-40});
+        police.push({img:POLICE_IMG, x:LANES[Math.floor(Math.random()*3)], y:-40, w:40, h:55});
     }
     if(Math.random()<0.7){
-        obstacles.push({img:Math.random()<0.5?CAR_IMG:TRASH_IMG, x:LANES[Math.floor(Math.random()*3)], y:-60});
+        obstacles.push({img:Math.random()<0.5?CAR_IMG:TRASH_IMG, x:LANES[Math.floor(Math.random()*3)], y:-60, w:60, h:90});
     }
 }
 
+// ----------- COLLISION -----------
+
+function isColliding(a, b){
+    return a.x - a.w/2 < b.x + b.w/2 &&
+           a.x + a.w/2 > b.x - b.w/2 &&
+           a.y - a.h/2 < b.y + b.h/2 &&
+           a.y + a.h/2 > b.y - b.h/2;
+}
+
 // ----------- DESSIN -----------
+
 function drawRect(img,x,y){
     ctx.drawImage(img,x-img.width/2,y-img.height/2);
 }
@@ -138,7 +150,7 @@ function drawBackground(offset){
     ctx.fillStyle="#606060"; ctx.fillRect(0,0,80,H); ctx.fillRect(W-80,0,80,H);
     ctx.strokeStyle="#888"; ctx.lineWidth=2;
     LANES.forEach(x=>{ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); });
-    let space = 160*1.65; // 1,65x plus grand
+    let space = 160*1.65;
     for(let y=-100;y<H;y+=space){
         ctx.fillStyle="#777"; ctx.fillRect(10,(y+offset)%H,60,120);
         ctx.fillStyle="#777"; ctx.fillRect(W-70,(y+offset)%H,60,120);
@@ -159,11 +171,13 @@ function drawUI(){
 }
 
 // ----------- RESTART -----------
+
 function restart(){
     children=[]; police=[]; obstacles=[]; score=0; playerLane=1; player_rect.x=LANES[playerLane]; gameOver=false;
 }
 
 // ----------- LOOP -----------
+
 let lastTime=0, bgOffset=0;
 
 function loop(time){
@@ -174,19 +188,27 @@ function loop(time){
     if(!gameOver){
         if(time-lastSpawn>SPAWN_DELAY){ spawn(); lastSpawn=time; }
 
-        children.forEach((c,i)=>{ c.y+=speed; if(c.y>H) children.splice(i,1); });
-        police.forEach((p,i)=>{ p.y+=speed; if(p.y>H) police.splice(i,1); });
-        obstacles.forEach((o,i)=>{ o.y+=speed; if(o.y>H) obstacles.splice(i,1); });
+        // Déplacement
+        children.forEach(c=>c.y+=speed);
+        police.forEach(p=>p.y+=speed);
+        obstacles.forEach(o=>o.y+=speed);
 
-        children.forEach((c,i)=>{ 
-            if(c.x-player_rect.x<30 && Math.abs(c.y-player_rect.y)<60){ score++; children.splice(i,1); } 
+        // Suppression si hors écran
+        children = children.filter(c=>c.y<H+50);
+        police = police.filter(p=>p.y<H+50);
+        obstacles = obstacles.filter(o=>o.y<H+50);
+
+        // Collisions enfants
+        children = children.filter(c=>{
+            if(isColliding(player_rect, c)){ score++; return false; }
+            return true;
         });
-        police.forEach((p,i)=>{ 
-            if(p.x-player_rect.x<30 && Math.abs(p.y-player_rect.y)<60){ gameOver=true; } 
-        });
-        obstacles.forEach((o,i)=>{
-            if(o.x-player_rect.x<30 && Math.abs(o.y-player_rect.y)<60){ gameOver=true; } 
-        });
+
+        // Collisions police
+        if(police.some(p=>isColliding(player_rect, p))) gameOver=true;
+
+        // Collisions obstacles
+        if(obstacles.some(o=>isColliding(player_rect, o))) gameOver=true;
 
         if(score>bestScore){ bestScore=score; localStorage.setItem("bestScore",bestScore); }
     }
@@ -197,12 +219,14 @@ function loop(time){
     obstacles.forEach(o=>drawRect(o.img,o.x,o.y));
     drawRect(VAN_IMG,player_rect.x,player_rect.y);
     drawUI();
+
     requestAnimationFrame(loop);
 }
 
 requestAnimationFrame(loop);
 
 // ----------- CONTROLES -----------
+
 document.addEventListener("keydown",e=>{
     if(!gameOver){
         if(e.key==="ArrowLeft" && playerLane>0) playerLane--;
