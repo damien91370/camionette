@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="fr">
+<title>Rue aux Enfants 🚐</title>
 <head>
 <meta charset="UTF-8">
-<title>Rue aux Enfants 🚐</title>
 <style>
 body{
     margin:0;
