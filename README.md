@@ -5,7 +5,7 @@
 <title>Rue aux Enfants 🚐</title>
 <style>
 body{margin:0;background:#222;display:flex;justify-content:center;align-items:center;height:100vh;font-family:Arial,sans-serif;}
-canvas{background:#333;border-radius:12px;}
+canvas{background:#333;border-radius:12px;touch-action:none;}
 </style>
 </head>
 <body>
@@ -68,7 +68,7 @@ function drawBackground(offset){
 function drawUI(){
     ctx.fillStyle="white";ctx.font="20px Arial";ctx.fillText("Score : "+score,10,25);
     ctx.fillStyle="gold";ctx.fillText("Best : "+bestScore,10,50);
-    if(gameOver){ctx.fillStyle="red";ctx.font="20px Arial";ctx.fillText("GAME OVER - R pour restart",60,H/2);}
+    if(gameOver){ctx.fillStyle="red";ctx.font="20px Arial";ctx.fillText("GAME OVER - toucher pour restart",40,H/2);}
 }
 
 // ---------- RESTART ----------
@@ -110,6 +110,21 @@ document.addEventListener("keydown",e=>{
         playerRect.x=LANES[playerLane];
     }else if(e.key==="r"){restart();}
 });
+
+// ---------- TOUCH & SWIPE ----------
+let touchStartX=null;
+canvas.addEventListener("touchstart",e=>{ 
+    e.preventDefault();
+    if(gameOver){restart(); return;}
+    touchStartX=e.touches[0].clientX;
+});
+canvas.addEventListener("touchmove",e=>{
+    if(touchStartX===null) return;
+    let diff=e.touches[0].clientX-touchStartX;
+    if(diff>30 && playerLane<2){playerLane++;playerRect.x=LANES[playerLane];touchStartX=e.touches[0].clientX;}
+    if(diff<-30 && playerLane>0){playerLane--;playerRect.x=LANES[playerLane];touchStartX=e.touches[0].clientX;}
+});
+canvas.addEventListener("touchend",()=>{touchStartX=null});
 </script>
 </body>
 </html>
