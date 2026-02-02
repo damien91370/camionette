@@ -21,7 +21,7 @@ const W=canvas.width,H=canvas.height;
 const LANES=[W/4,W/2,3*W/4];
 const PLAYER_Y=H-120;
 
-let BASE_SPEED=6,SPAWN_DELAY=700;
+let BASE_SPEED=6,SPAWN_DELAY=1000;
 
 let playerLane=1;
 let children=[],police=[],gaz=[],obstacles=[];
