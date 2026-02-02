@@ -47,11 +47,10 @@ let gameOver = false;
 let lastSpawn = 0;
 let bestScore = Number(localStorage.getItem("bestScore") || 0);
 
-// ----------- TEXTURES DESSINÉES -----------
+// ----------- TEXTURES -----------
 
 function makeVan(){
-    let s = document.createElement("canvas");
-    s.width = 60; s.height = 90;
+    let s = document.createElement("canvas"); s.width=60; s.height=90;
     let c = s.getContext("2d");
     c.fillStyle="#dddddd"; c.fillRect(5,5,50,80);
     c.fillStyle="#78b4ff"; c.fillRect(10,8,40,18);
@@ -116,17 +115,32 @@ const TRASH_IMG = makeTrash();
 
 let player_rect = {x: LANES[playerLane], y:PLAYER_Y, w:60, h:90};
 
-// ----------- SPAWN -----------
+// ----------- SPAWN SAFE -----------
 
 function spawn(){
-    for(let i=0;i<2;i++){
-        children.push({img:CHILD_IMG, x:LANES[Math.floor(Math.random()*3)], y:-40, w:40, h:55});
+    // Lanes occupées
+    let occupied = [...children.map(c=>c.x), ...police.map(p=>p.x), ...obstacles.map(o=>o.x)];
+    let freeLanes = LANES.filter(l=>!occupied.includes(l));
+
+    // Enfants
+    for(let i=0;i<Math.min(2, freeLanes.length); i++){
+        let idx = Math.floor(Math.random()*freeLanes.length);
+        let lane = freeLanes.splice(idx,1)[0];
+        children.push({img:CHILD_IMG, x:lane, y:-40, w:40, h:55});
     }
-    if(Math.random()<0.8){
-        police.push({img:POLICE_IMG, x:LANES[Math.floor(Math.random()*3)], y:-40, w:40, h:55});
+
+    // Police
+    if(Math.random()<0.8 && freeLanes.length>0){
+        let idx = Math.floor(Math.random()*freeLanes.length);
+        let lane = freeLanes.splice(idx,1)[0];
+        police.push({img:POLICE_IMG, x:lane, y:-40, w:40, h:55});
     }
-    if(Math.random()<0.7){
-        obstacles.push({img:Math.random()<0.5?CAR_IMG:TRASH_IMG, x:LANES[Math.floor(Math.random()*3)], y:-60, w:60, h:90});
+
+    // Obstacles
+    if(Math.random()<0.7 && freeLanes.length>0){
+        let idx = Math.floor(Math.random()*freeLanes.length);
+        let lane = freeLanes.splice(idx,1)[0];
+        obstacles.push({img:Math.random()<0.5?CAR_IMG:TRASH_IMG, x:lane, y:-60, w:60, h:90});
     }
 }
 
@@ -141,9 +155,7 @@ function isColliding(a, b){
 
 // ----------- DESSIN -----------
 
-function drawRect(img,x,y){
-    ctx.drawImage(img,x-img.width/2,y-img.height/2);
-}
+function drawRect(img,x,y){ ctx.drawImage(img,x-img.width/2,y-img.height/2); }
 
 function drawBackground(offset){
     ctx.fillStyle="#303030"; ctx.fillRect(0,0,W,H);
@@ -160,8 +172,7 @@ function drawBackground(offset){
 function drawUI(){
     ctx.fillStyle="white"; ctx.font="20px Arial";
     ctx.fillText("Score : "+score,10,25);
-    ctx.fillStyle="gold";
-    ctx.fillText("Best : "+bestScore,10,50);
+    ctx.fillStyle="gold"; ctx.fillText("Best : "+bestScore,10,50);
     if(gameOver){
         ctx.fillStyle="red"; ctx.font="30px Arial";
         ctx.fillText("GAME OVER",120,H/2);
@@ -193,22 +204,19 @@ function loop(time){
         police.forEach(p=>p.y+=speed);
         obstacles.forEach(o=>o.y+=speed);
 
-        // Suppression si hors écran
+        // Suppression hors écran
         children = children.filter(c=>c.y<H+50);
         police = police.filter(p=>p.y<H+50);
         obstacles = obstacles.filter(o=>o.y<H+50);
 
-        // Collisions enfants
+        // Collision enfants
         children = children.filter(c=>{
-            if(isColliding(player_rect, c)){ score++; return false; }
+            if(isColliding(player_rect,c)){ score++; return false; }
             return true;
         });
 
-        // Collisions police
-        if(police.some(p=>isColliding(player_rect, p))) gameOver=true;
-
-        // Collisions obstacles
-        if(obstacles.some(o=>isColliding(player_rect, o))) gameOver=true;
+        // Collision police/obstacles
+        if(police.some(p=>isColliding(player_rect,p)) || obstacles.some(o=>isColliding(player_rect,o))) gameOver=true;
 
         if(score>bestScore){ bestScore=score; localStorage.setItem("bestScore",bestScore); }
     }
