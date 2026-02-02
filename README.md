@@ -18,16 +18,16 @@ const W=canvas.width,H=canvas.height;
 const LANES=[W/4,W/2,3*W/4];
 const PLAYER_Y=H-120;
 
-let BASE_SPEED=6,SPAWN_DELAY=700;
+let BASE_SPEED=6,SPAWN_DELAY=1000;
 
 let playerLane=1;
 let playerRect={x:LANES[playerLane],y:PLAYER_Y,w:60,h:90};
 
-let children=[],police=[],gaz=[],obstacles=[];
+let children=[],police=[],obstacles=[];
 let score=0,gameOver=false,lastSpawn=0;
 let bestScore=Number(localStorage.getItem("bestScore")||0);
 
-// --------- TEXTURES ---------
+// ---------- TEXTURES ----------
 function makeVan(){let s=document.createElement("canvas");s.width=60;s.height=90;let c=s.getContext("2d");c.fillStyle="#dddddd";c.fillRect(5,5,50,80);c.fillStyle="#78b4ff";c.fillRect(10,8,40,18);c.fillStyle="#aad2ff";c.fillRect(10,40,40,20);c.fillStyle="#ffff78";c.beginPath();c.arc(15,5,4,0,2*Math.PI);c.fill();c.beginPath();c.arc(45,5,4,0,2*Math.PI);c.fill();c.fillStyle="#1e1e1e";c.fillRect(0,20,5,18);c.fillRect(55,20,5,18);c.fillRect(0,55,5,18);c.fillRect(55,55,5,18);return s;}
 function makeChild(){let s=document.createElement("canvas");s.width=40;s.height=55;let c=s.getContext("2d");c.fillStyle="#ffdcb4";c.beginPath();c.arc(20,12,10,0,2*Math.PI);c.fill();c.fillStyle="#000";c.beginPath();c.arc(16,12,2,0,2*Math.PI);c.fill();c.beginPath();c.arc(24,12,2,0,2*Math.PI);c.fill();c.fillStyle="#ff5050";c.fillRect(10,22,20,22);c.strokeStyle="#3c3c3c";c.lineWidth=3;c.beginPath();c.moveTo(15,44);c.lineTo(15,54);c.stroke();c.beginPath();c.moveTo(25,44);c.lineTo(25,54);c.stroke();return s;}
 function makePolice(){let s=document.createElement("canvas");s.width=40;s.height=55;let c=s.getContext("2d");c.fillStyle="#b4b4ff";c.beginPath();c.arc(20,12,10,0,2*Math.PI);c.fill();c.fillStyle="#000";c.beginPath();c.arc(16,12,2,0,2*Math.PI);c.fill();c.beginPath();c.arc(24,12,2,0,2*Math.PI);c.fill();c.fillStyle="#000078";c.fillRect(10,22,20,22);c.strokeStyle="#3c3c3c";c.lineWidth=3;c.beginPath();c.moveTo(15,44);c.lineTo(15,54);c.stroke();c.beginPath();c.moveTo(25,44);c.lineTo(25,54);c.stroke();return s;}
@@ -36,28 +36,16 @@ function makeTrash(){let s=document.createElement("canvas");s.width=50;s.height=
 
 const VAN_IMG=makeVan(),CHILD_IMG=makeChild(),POLICE_IMG=makePolice(),CAR_IMG=makeCar(),TRASH_IMG=makeTrash();
 
-// --------- SPAWN EXACTEMENT COMME PYGAME ---------
+// ---------- SPAWN ----------
 function spawnObjects(){
-    // 2 enfants
     for(let i=0;i<2;i++){
         let x=LANES[Math.floor(Math.random()*3)];
         children.push({img:CHILD_IMG,x:x,y:-40,w:40,h:55});
     }
-    // police 80%
     if(Math.random()<0.8){
         let x=LANES[Math.floor(Math.random()*3)];
         police.push({img:POLICE_IMG,x:x,y:-40,w:40,h:55});
     }
-    // drogues 25%
-    if(Math.random()<0.25){
-        let x=LANES[Math.floor(Math.random()*3)];
-        let canvas=document.createElement("canvas");
-        canvas.width=32;canvas.height=32;
-        let c=canvas.getContext("2d");
-        c.font="28px serif";c.fillText("💊",0,28);
-        gaz.push({img:canvas,x:x,y:-40,w:32,h:32});
-    }
-    // obstacles 70%
     if(Math.random()<0.7){
         let x=LANES[Math.floor(Math.random()*3)];
         let img=Math.random()<0.5?CAR_IMG:TRASH_IMG;
@@ -65,10 +53,10 @@ function spawnObjects(){
     }
 }
 
-// --------- COLLISIONS ---------
+// ---------- COLLISIONS ----------
 function isColliding(a,b){return Math.abs(a.x-b.x)<30 && Math.abs(a.y-b.y)<60;}
 
-// --------- DRAW ---------
+// ---------- DRAW ----------
 function drawRect(img,x,y){ctx.drawImage(img,x-img.width/2,y-img.height/2);}
 function drawBackground(offset){
     ctx.fillStyle="#303030";ctx.fillRect(0,0,W,H);
@@ -83,10 +71,10 @@ function drawUI(){
     if(gameOver){ctx.fillStyle="red";ctx.font="20px Arial";ctx.fillText("GAME OVER - R pour restart",60,H/2);}
 }
 
-// --------- RESTART ---------
-function restart(){children=[];police=[];gaz=[];obstacles=[];score=0;playerLane=1;playerRect.x=LANES[playerLane];gameOver=false;}
+// ---------- RESTART ----------
+function restart(){children=[];police=[];obstacles=[];score=0;playerLane=1;playerRect.x=LANES[playerLane];gameOver=false;}
 
-// --------- LOOP ---------
+// ---------- LOOP ----------
 let lastTime=0,bgOffset=0;
 function loop(time){
     let dt=time-lastTime;lastTime=time;
@@ -98,7 +86,6 @@ function loop(time){
 
         children.forEach((c,i)=>{c.y+=speed;if(c.y>H) children.splice(i,1);if(isColliding(playerRect,c)){score++;children.splice(i,1);}});
         police.forEach((p,i)=>{p.y+=speed;if(p.y>H) police.splice(i,1);if(isColliding(playerRect,p)){gameOver=true;}});
-        gaz.forEach((g,i)=>{g.y+=speed;if(g.y>H) gaz.splice(i,1);});
         obstacles.forEach((o,i)=>{o.y+=speed;if(o.y>H) obstacles.splice(i,1);if(isColliding(playerRect,o)){gameOver=true;}});
 
         if(score>bestScore){bestScore=score;localStorage.setItem("bestScore",bestScore);}
@@ -107,7 +94,6 @@ function loop(time){
     drawBackground(bgOffset);
     children.forEach(c=>drawRect(c.img,c.x,c.y));
     police.forEach(c=>drawRect(c.img,c.x,c.y));
-    gaz.forEach(c=>drawRect(c.img,c.x,c.y));
     obstacles.forEach(c=>drawRect(c.img,c.x,c.y));
     drawRect(VAN_IMG,playerRect.x,playerRect.y);
     drawUI();
@@ -116,7 +102,7 @@ function loop(time){
 }
 requestAnimationFrame(loop);
 
-// --------- CONTROLES ---------
+// ---------- CONTROLES ----------
 document.addEventListener("keydown",e=>{
     if(!gameOver){
         if(e.key==="ArrowLeft" && playerLane>0) playerLane--;
@@ -124,12 +110,6 @@ document.addEventListener("keydown",e=>{
         playerRect.x=LANES[playerLane];
     }else if(e.key==="r"){restart();}
 });
-
-// --------- MOBILE SWIPE ---------
-let touchStartX=0,touchEndX=0;
-canvas.addEventListener("touchstart",e=>{touchStartX=e.touches[0].clientX;});
-canvas.addEventListener("touchend",e=>{touchEndX=e.changedTouches[0].clientX;if(!gameOver) handleSwipe();else restart();});
-function handleSwipe(){let dx=touchEndX-touchStartX;if(Math.abs(dx)<30) return;if(dx>0 && playerLane<2) playerLane++;if(dx<0 && playerLane>0) playerLane--;playerRect.x=LANES[playerLane];}
 </script>
 </body>
 </html>
