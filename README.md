@@ -77,8 +77,8 @@ function restart(){children=[];police=[];obstacles=[];score=0;playerLane=1;playe
 // ---------- LOOP ----------
 let lastTime=0,bgOffset=0;
 function loop(time){
-    let dt=time-lastTime;lastTime=time;
-    let speed=BASE_SPEED+score*0.03;
+    let dt=time-lastTime; lastTime=time;
+    let speed=(BASE_SPEED+score*0.03)*(dt/16.6667); // NORMALISATION FPS
     bgOffset+=speed;
 
     if(!gameOver){
