@@ -35,7 +35,7 @@ const LANES = [W/4, W/2, 3*W/4];
 const PLAYER_Y = H - 120;
 
 let BASE_SPEED = 6;
-let SPAWN_DELAY = 700;
+let SPAWN_DELAY = 3500;
 
 let playerLane = 1;
 let children = [];
