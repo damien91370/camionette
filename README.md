@@ -69,24 +69,29 @@ function spawn(){
     let occupied = [...children.map(c=>c.x), ...police.map(p=>p.x), ...obstacles.map(o=>o.x)];
     let freeLanes = LANES.filter(l=>!occupied.includes(l));
 
+    // --- enfants (max 2) ---
     for(let i=0;i<Math.min(2, freeLanes.length); i++){
         let idx=Math.floor(Math.random()*freeLanes.length);
         let lane=freeLanes.splice(idx,1)[0];
         children.push({img:CHILD_IMG,x:lane,y:-40,w:40,h:55});
     }
 
+    // --- police (max 1) ---
     if(Math.random()<0.8 && freeLanes.length>0){
         let idx=Math.floor(Math.random()*freeLanes.length);
         let lane=freeLanes.splice(idx,1)[0];
         police.push({img:POLICE_IMG,x:lane,y:-40,w:40,h:55});
     }
 
-    if(Math.random()<0.7 && freeLanes.length>0){
+    // --- obstacles (tripler) ---
+    let obstaclesToSpawn = Math.min(3, freeLanes.length); // 3x plus
+    for(let i=0; i<obstaclesToSpawn; i++){
         let idx=Math.floor(Math.random()*freeLanes.length);
         let lane=freeLanes.splice(idx,1)[0];
         obstacles.push({img:Math.random()<0.5?CAR_IMG:TRASH_IMG,x:lane,y:-60,w:60,h:90});
     }
 }
+
 
 // ----------- COLLISION -----------
 
