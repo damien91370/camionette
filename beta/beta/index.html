@@ -39,10 +39,10 @@ const VAN_IMG=makeVan(),CHILD_IMG=makeChild(),POLICE_IMG=makePolice(),CAR_IMG=ma
 // ---------- SAISON ----------
 function getSeason(){
     const month=new Date().getMonth()+1;
-    if(month==12||month==1||month==2) return "hiver";
-    if(month>=3 && month<=5) return "printemps";
+    if(month==12||month==1||month==2) return "ete";
+    if(month>=3 && month<=5) return "ete";
     if(month>=6 && month<=8) return "ete";
-    if(month>=9 && month<=11) return "automne";
+    if(month>=9 && month<=11) return "ete";
     return "ete";
 }
 const season=getSeason();
