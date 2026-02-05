@@ -24,8 +24,8 @@ let playerLane=1;
 let playerRect={x:LANES[playerLane],y:PLAYER_Y,w:60,h:90};
 
 let children=[],police=[],obstacles=[];
-let score=0,gameOver=false,lastSpawn=0;
-let bestScore=Number(localStorage.getItem("bestScore")||0);
+let score=0,gameOver=false,lastSpawn=0,boutiqueOpen=false;
+let gosses=Number(localStorage.getItem("gosses")||20); // <-- solde actuel
 
 // ---------- TEXTURES ----------
 function makeVan(){let s=document.createElement("canvas");s.width=60;s.height=90;let c=s.getContext("2d");c.fillStyle="#dddddd";c.fillRect(5,5,50,80);c.fillStyle="#78b4ff";c.fillRect(10,8,40,18);c.fillStyle="#aad2ff";c.fillRect(10,40,40,20);c.fillStyle="#ffff78";c.beginPath();c.arc(15,5,4,0,2*Math.PI);c.fill();c.beginPath();c.arc(45,5,4,0,2*Math.PI);c.fill();c.fillStyle="#1e1e1e";c.fillRect(0,20,5,18);c.fillRect(55,20,5,18);c.fillRect(0,55,5,18);c.fillRect(55,55,5,18);return s;}
@@ -66,29 +66,66 @@ function drawBackground(offset){
     for(let y=-100;y<H;y+=160*1.65){ctx.fillStyle="#777";ctx.fillRect(10,(y+offset)%H,60,120);ctx.fillStyle="#777";ctx.fillRect(W-70,(y+offset)%H,60,120);}
 }
 function drawUI(){
-    ctx.fillStyle="white";ctx.font="20px Arial";ctx.fillText("Score : "+score,10,25);
-    ctx.fillStyle="gold";ctx.fillText("Best : "+bestScore,10,50);
-    if(gameOver){ctx.fillStyle="red";ctx.font="20px Arial";ctx.fillText("GAME OVER - appuyez sur R ou touchez pour restart",40,H/2);}
+    ctx.fillStyle="white";ctx.font="20px Arial";
+    ctx.fillText("Gosses : "+gosses,10,25);
+    if(gameOver && !boutiqueOpen){
+        ctx.fillStyle="rgba(0,0,0,0.7)";
+        ctx.fillRect(50,H/2-120,380,240);
+        ctx.fillStyle="#ff4444";ctx.font="30px Arial";ctx.fillText("GAME OVER",130,H/2-70);
+        // boutons
+        ctx.fillStyle="#44ff44";ctx.fillRect(100,H/2-20,120,50);ctx.fillStyle="#fff";ctx.fillText("Rejouer",120,H/2+15);
+        ctx.fillStyle="#4488ff";ctx.fillRect(260,H/2-20,120,50);ctx.fillStyle="#fff";ctx.fillText("Boutique",280,H/2+15);
+    }
+    if(boutiqueOpen) drawBoutique();
+}
+
+// ---------- BOUTIQUE ----------
+let camionLevel=1,capacite=5;
+const upgrades=[
+    {lvl:1,capa:5,prix:5},{lvl:2,capa:10,prix:10},{lvl:3,capa:20,prix:20},
+    {lvl:4,capa:50,prix:50},{lvl:5,capa:100,prix:100},{lvl:6,capa:200,prix:200},
+    {lvl:7,capa:500,prix:500}
+];
+function drawBoutique(){
+    ctx.fillStyle="#222";ctx.fillRect(30,50,W-60,H-100);
+    ctx.fillStyle="#ffd700";ctx.font="24px Arial";ctx.fillText("BOUTIQUE - Améliore ta camionnette",50,90);
+    upgrades.forEach((u,i)=>{
+        let y=130+i*60;
+        ctx.fillStyle="#333";ctx.fillRoundRect(40,y,400,50,10);
+        ctx.fillStyle=i+1<=camionLevel?"#88ff88":"#888";
+        ctx.fillRoundRect(40+5,y+5,80,40,8);
+        ctx.fillStyle="#fff";ctx.fillText("Lvl "+u.lvl,50,y+32);
+        ctx.fillStyle="#ffaa00";
+        ctx.fillText("Capacité : "+u.capa,150,y+32);
+        ctx.fillStyle="#ff88ff";
+        ctx.fillText("Prix : "+u.prix+" gosses",300,y+32);
+    });
+    ctx.fillStyle="#ff4444";ctx.fillRect(W/2-60,H-80,120,40);ctx.fillStyle="#fff";ctx.fillText("Retour",W/2-40,H-50);
 }
 
 // ---------- RESTART ----------
-function restart(){children=[];police=[];obstacles=[];score=0;playerLane=1;playerRect.x=LANES[playerLane];gameOver=false;}
+function restart(){children=[];police=[];obstacles=[];score=0;playerLane=1;playerRect.x=LANES[playerLane];gameOver=false;boutiqueOpen=false;}
 
 // ---------- LOOP ----------
 let lastTime=0,bgOffset=0;
 function loop(time){
     let dt=time-lastTime; lastTime=time;
-    let speed=(BASE_SPEED+score*0.03)*(dt/16.6667); // NORMALISATION FPS
-    bgOffset+=speed;
+    let speed=(BASE_SPEED+score*0.03)*(dt/16.6667);
+    if(!gameOver) bgOffset+=speed;
 
-    if(!gameOver){
+    if(!gameOver && !boutiqueOpen){
         if(time-lastSpawn>SPAWN_DELAY){spawnObjects();lastSpawn=time;}
-
-        children.forEach((c,i)=>{c.y+=speed;if(c.y>H) children.splice(i,1);if(isColliding(playerRect,c)){score++;children.splice(i,1);}});
+        children.forEach((c,i)=>{
+            c.y+=speed;
+            if(c.y>H) children.splice(i,1);
+            if(isColliding(playerRect,c)){
+                gosses+=1; // <-- gagne 1 gosses par enfant
+                localStorage.setItem("gosses",gosses);
+                children.splice(i,1);
+            }
+        });
         police.forEach((p,i)=>{p.y+=speed;if(p.y>H) police.splice(i,1);if(isColliding(playerRect,p)){gameOver=true;}});
         obstacles.forEach((o,i)=>{o.y+=speed;if(o.y>H) obstacles.splice(i,1);if(isColliding(playerRect,o)){gameOver=true;}});
-
-        if(score>bestScore){bestScore=score;localStorage.setItem("bestScore",bestScore);}
     }
 
     drawBackground(bgOffset);
@@ -102,7 +139,7 @@ function loop(time){
 }
 requestAnimationFrame(loop);
 
-// ---------- CONTROLES PC ----------
+// ---------- CONTROLES ----------
 document.addEventListener("keydown",e=>{
     if(!gameOver){
         if(e.key==="ArrowLeft" && playerLane>0) playerLane--;
@@ -111,24 +148,64 @@ document.addEventListener("keydown",e=>{
     }else if(e.key==="r"){restart();}
 });
 
-// ---------- TOUCH & SWIPE MOBILE ----------
-let touchStartX=null, swipeLocked=false;
+canvas.addEventListener("click", e=>{
+    let mx=e.offsetX,my=e.offsetY;
+    if(gameOver && !boutiqueOpen){
+        if(mx>100 && mx<220 && my>H/2-20 && my<H/2+30){restart();}
+        if(mx>260 && mx<380 && my>H/2-20 && my<H/2+30){boutiqueOpen=true;}
+    } else if(boutiqueOpen){
+        if(mx>W/2-60 && mx<W/2+60 && my>H-80 && my<H-40){boutiqueOpen=false;}
+        upgrades.forEach((u,i)=>{
+            let y=130+i*60;
+            if(mx>40 && mx<440 && my>y && my<y+50 && camionLevel<u.lvl && gosses>=u.prix){
+                camionLevel=u.lvl;
+                capacite=u.capa;
+                gosses-=u.prix;
+                localStorage.setItem("gosses",gosses);
+            }
+        });
+    }
+});
 
+// ---------- TOUCH MOBILE ----------
+let touchStartX=null, swipeLocked=false;
 canvas.addEventListener("touchstart", e => { 
     e.preventDefault();
-    if(gameOver){ restart(); return; }
+    if(gameOver && !boutiqueOpen){
+        let t=e.touches[0];
+        let mx=t.clientX,my=t.clientY;
+        if(mx>100 && mx<220 && my>H/2-20 && my<H/2+30){restart();}
+        if(mx>260 && mx<380 && my>H/2-20 && my<H/2+30){boutiqueOpen=true;}
+        return;
+    }
+    if(boutiqueOpen) return;
     touchStartX=e.touches[0].clientX;
     swipeLocked=false;
 });
-
 canvas.addEventListener("touchmove", e => {
     if(touchStartX===null || swipeLocked) return;
     let diff=e.touches[0].clientX-touchStartX;
     if(diff>40 && playerLane<2){playerLane++;playerRect.x=LANES[playerLane];swipeLocked=true;}
     if(diff<-40 && playerLane>0){playerLane--;playerRect.x=LANES[playerLane];swipeLocked=true;}
 });
-
 canvas.addEventListener("touchend", ()=>{touchStartX=null; swipeLocked=false;});
+
+// ---------- ROUND RECT POLYFILL ----------
+CanvasRenderingContext2D.prototype.fillRoundRect = function(x,y,w,h,r){
+    if(!r) r=5;
+    this.beginPath();
+    this.moveTo(x+r,y);
+    this.lineTo(x+w-r,y);
+    this.quadraticCurveTo(x+w,y,x+w,y+r);
+    this.lineTo(x+w,y+h-r);
+    this.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    this.lineTo(x+r,y+h);
+    this.quadraticCurveTo(x,y+h,x,y+h-r);
+    this.lineTo(x,y+r);
+    this.quadraticCurveTo(x,y,x+r,y);
+    this.closePath();
+    this.fill();
+};
 </script>
 </body>
 </html>
