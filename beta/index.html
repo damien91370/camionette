@@ -25,7 +25,18 @@ let playerRect={x:LANES[playerLane],y:PLAYER_Y,w:60,h:90};
 
 let children=[],police=[],obstacles=[];
 let score=0,gameOver=false,lastSpawn=0,boutiqueOpen=false;
-let gosses=Number(localStorage.getItem("gosses")||20); // <-- solde actuel
+
+// --- SOLDE ET CAMIONNETTE ---
+let gosses=Number(localStorage.getItem("gosses")||20); // solde global
+let gossesRun=0; // gosses collectés sur le run actuel
+
+let camionLevel=Number(localStorage.getItem("camionLevel")||1);
+const upgrades=[
+    {lvl:1,capa:5,prix:5},{lvl:2,capa:10,prix:10},{lvl:3,capa:20,prix:20},
+    {lvl:4,capa:50,prix:50},{lvl:5,capa:100,prix:100},{lvl:6,capa:200,prix:200},
+    {lvl:7,capa:500,prix:500}
+];
+let capacite=upgrades[camionLevel-1].capa;
 
 // ---------- TEXTURES ----------
 function makeVan(){let s=document.createElement("canvas");s.width=60;s.height=90;let c=s.getContext("2d");c.fillStyle="#dddddd";c.fillRect(5,5,50,80);c.fillStyle="#78b4ff";c.fillRect(10,8,40,18);c.fillStyle="#aad2ff";c.fillRect(10,40,40,20);c.fillStyle="#ffff78";c.beginPath();c.arc(15,5,4,0,2*Math.PI);c.fill();c.beginPath();c.arc(45,5,4,0,2*Math.PI);c.fill();c.fillStyle="#1e1e1e";c.fillRect(0,20,5,18);c.fillRect(55,20,5,18);c.fillRect(0,55,5,18);c.fillRect(55,55,5,18);return s;}
@@ -67,12 +78,11 @@ function drawBackground(offset){
 }
 function drawUI(){
     ctx.fillStyle="white";ctx.font="20px Arial";
-    ctx.fillText("Gosses : "+gosses,10,25);
+    ctx.fillText("Gosses : "+gosses+" / "+capacite,10,25);
     if(gameOver && !boutiqueOpen){
         ctx.fillStyle="rgba(0,0,0,0.7)";
         ctx.fillRect(50,H/2-120,380,240);
         ctx.fillStyle="#ff4444";ctx.font="30px Arial";ctx.fillText("GAME OVER",130,H/2-70);
-        // boutons
         ctx.fillStyle="#44ff44";ctx.fillRect(100,H/2-20,120,50);ctx.fillStyle="#fff";ctx.fillText("Rejouer",120,H/2+15);
         ctx.fillStyle="#4488ff";ctx.fillRect(260,H/2-20,120,50);ctx.fillStyle="#fff";ctx.fillText("Boutique",280,H/2+15);
     }
@@ -80,31 +90,31 @@ function drawUI(){
 }
 
 // ---------- BOUTIQUE ----------
-let camionLevel=1,capacite=5;
-const upgrades=[
-    {lvl:1,capa:5,prix:5},{lvl:2,capa:10,prix:10},{lvl:3,capa:20,prix:20},
-    {lvl:4,capa:50,prix:50},{lvl:5,capa:100,prix:100},{lvl:6,capa:200,prix:200},
-    {lvl:7,capa:500,prix:500}
-];
 function drawBoutique(){
     ctx.fillStyle="#222";ctx.fillRect(30,50,W-60,H-100);
     ctx.fillStyle="#ffd700";ctx.font="24px Arial";ctx.fillText("BOUTIQUE - Améliore ta camionnette",50,90);
     upgrades.forEach((u,i)=>{
         let y=130+i*60;
         ctx.fillStyle="#333";ctx.fillRoundRect(40,y,400,50,10);
-        ctx.fillStyle=i+1<=camionLevel?"#88ff88":"#888";
+        ctx.fillStyle=(i+1===camionLevel+1)?"#88ff88":"#888";
         ctx.fillRoundRect(40+5,y+5,80,40,8);
         ctx.fillStyle="#fff";ctx.fillText("Lvl "+u.lvl,50,y+32);
-        ctx.fillStyle="#ffaa00";
-        ctx.fillText("Capacité : "+u.capa,150,y+32);
-        ctx.fillStyle="#ff88ff";
-        ctx.fillText("Prix : "+u.prix+" gosses",300,y+32);
+        ctx.fillStyle="#ffaa00";ctx.fillText("Capacité : "+u.capa,150,y+32);
+        ctx.fillStyle="#ff88ff";ctx.fillText("Prix : "+u.prix+" gosses",300,y+32);
     });
     ctx.fillStyle="#ff4444";ctx.fillRect(W/2-60,H-80,120,40);ctx.fillStyle="#fff";ctx.fillText("Retour",W/2-40,H-50);
 }
 
 // ---------- RESTART ----------
-function restart(){children=[];police=[];obstacles=[];score=0;playerLane=1;playerRect.x=LANES[playerLane];gameOver=false;boutiqueOpen=false;}
+function restart(){
+    children=[];police=[];obstacles=[];
+    score=0;
+    playerLane=1;
+    playerRect.x=LANES[playerLane];
+    gameOver=false;
+    boutiqueOpen=false;
+    gossesRun=0; // reset gosses collectés sur ce run
+}
 
 // ---------- LOOP ----------
 let lastTime=0,bgOffset=0;
@@ -119,8 +129,11 @@ function loop(time){
             c.y+=speed;
             if(c.y>H) children.splice(i,1);
             if(isColliding(playerRect,c)){
-                gosses+=1; // <-- gagne 1 gosses par enfant
-                localStorage.setItem("gosses",gosses);
+                if(gossesRun<capacite){ // limite par trajet
+                    gosses++;
+                    gossesRun++;
+                    localStorage.setItem("gosses",gosses);
+                }
                 children.splice(i,1);
             }
         });
@@ -157,11 +170,14 @@ canvas.addEventListener("click", e=>{
         if(mx>W/2-60 && mx<W/2+60 && my>H-80 && my<H-40){boutiqueOpen=false;}
         upgrades.forEach((u,i)=>{
             let y=130+i*60;
-            if(mx>40 && mx<440 && my>y && my<y+50 && camionLevel<u.lvl && gosses>=u.prix){
-                camionLevel=u.lvl;
-                capacite=u.capa;
-                gosses-=u.prix;
-                localStorage.setItem("gosses",gosses);
+            if(mx>40 && mx<440 && my>y && my<y+50){
+                if(u.lvl===camionLevel+1 && gosses>=u.prix){
+                    camionLevel=u.lvl;
+                    capacite=u.capa;
+                    gosses-=u.prix;
+                    localStorage.setItem("gosses",gosses);
+                    localStorage.setItem("camionLevel",camionLevel);
+                }
             }
         });
     }
