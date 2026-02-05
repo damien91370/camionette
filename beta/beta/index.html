@@ -24,28 +24,18 @@ let playerLane=1;
 let playerRect={x:LANES[playerLane],y:PLAYER_Y,w:60,h:90};
 
 let children=[],police=[],obstacles=[];
-let score=0,gameOver=false,lastSpawn=0;
+let score=0,gameOver=false,lastSpawn=0,boutiqueOpen=false;
+let bestScore=Number(localStorage.getItem("bestScore")||0);
 
 // ---------- TEXTURES ----------
+
 function makeVan(){let s=document.createElement("canvas");s.width=60;s.height=90;let c=s.getContext("2d");c.fillStyle="#dddddd";c.fillRect(5,5,50,80);c.fillStyle="#78b4ff";c.fillRect(10,8,40,18);c.fillStyle="#aad2ff";c.fillRect(10,40,40,20);c.fillStyle="#ffff78";c.beginPath();c.arc(15,5,4,0,2*Math.PI);c.fill();c.beginPath();c.arc(45,5,4,0,2*Math.PI);c.fill();c.fillStyle="#1e1e1e";c.fillRect(0,20,5,18);c.fillRect(55,20,5,18);c.fillRect(0,55,5,18);c.fillRect(55,55,5,18);return s;}
 function makeChild(){let s=document.createElement("canvas");s.width=40;s.height=55;let c=s.getContext("2d");c.fillStyle="#ffdcb4";c.beginPath();c.arc(20,12,10,0,2*Math.PI);c.fill();c.fillStyle="#000";c.beginPath();c.arc(16,12,2,0,2*Math.PI);c.fill();c.beginPath();c.arc(24,12,2,0,2*Math.PI);c.fill();c.fillStyle="#ff5050";c.fillRect(10,22,20,22);c.strokeStyle="#3c3c3c";c.lineWidth=3;c.beginPath();c.moveTo(15,44);c.lineTo(15,54);c.stroke();c.beginPath();c.moveTo(25,44);c.lineTo(25,54);c.stroke();return s;}
 function makePolice(){let s=document.createElement("canvas");s.width=40;s.height=55;let c=s.getContext("2d");c.fillStyle="#b4b4ff";c.beginPath();c.arc(20,12,10,0,2*Math.PI);c.fill();c.fillStyle="#000";c.beginPath();c.arc(16,12,2,0,2*Math.PI);c.fill();c.beginPath();c.arc(24,12,2,0,2*Math.PI);c.fill();c.fillStyle="#000078";c.fillRect(10,22,20,22);c.strokeStyle="#3c3c3c";c.lineWidth=3;c.beginPath();c.moveTo(15,44);c.lineTo(15,54);c.stroke();c.beginPath();c.moveTo(25,44);c.lineTo(25,54);c.stroke();return s;}
 function makeCar(){let s=document.createElement("canvas");s.width=60;s.height=90;let c=s.getContext("2d");c.fillStyle="#1e8cff";c.fillRect(0,20,60,60);c.fillStyle="#b4e6ff";c.fillRect(10,30,40,25);c.fillStyle="#ffff78";c.beginPath();c.arc(10,80,5,0,2*Math.PI);c.fill();c.beginPath();c.arc(50,80,5,0,2*Math.PI);c.fill();return s;}
 function makeTrash(){let s=document.createElement("canvas");s.width=50;s.height=70;let c=s.getContext("2d");c.fillStyle="#46be46";c.fillRect(5,10,40,55);c.fillStyle="#329632";c.fillRect(0,0,50,15);for(let y=20;y<60;y+=10){c.strokeStyle="#28822a";c.beginPath();c.moveTo(8,y);c.lineTo(42,y);c.stroke();}return s;}
-function makeCactus(){let s=document.createElement("canvas");s.width=20;s.height=40;let c=s.getContext("2d");c.fillStyle="#228B22";c.fillRect(8,0,4,40);c.fillRect(0,10,4,10);c.fillRect(16,10,4,10);return s;}
 
-const VAN_IMG=makeVan(),CHILD_IMG=makeChild(),POLICE_IMG=makePolice(),CAR_IMG=makeCar(),TRASH_IMG=makeTrash(),CACTUS_IMG=makeCactus();
-
-// ---------- SAISON ----------
-function getSeason(){
-    const month=new Date().getMonth()+1;
-    if(month==12||month==1||month==2) return "ete";
-    if(month>=3 && month<=5) return "ete";
-    if(month>=6 && month<=8) return "ete";
-    if(month>=9 && month<=11) return "ete";
-    return "ete";
-}
-const season=getSeason();
+const VAN_IMG=makeVan(),CHILD_IMG=makeChild(),POLICE_IMG=makePolice(),CAR_IMG=makeCar(),TRASH_IMG=makeTrash();
 
 // ---------- SPAWN ----------
 function spawnObjects(){
@@ -70,44 +60,67 @@ function isColliding(a,b){return Math.abs(a.x-b.x)<30 && Math.abs(a.y-b.y)<60;}
 // ---------- DRAW ----------
 function drawRect(img,x,y){ctx.drawImage(img,x-img.width/2,y-img.height/2);}
 function drawBackground(offset){
-    ctx.clearRect(0,0,W,H);
-    let roadColor="#606060",borderColor="#888",skyColor="#87CEEB";
-
-    if(season==="hiver"){skyColor="#001";roadColor="#EEE";borderColor="#BBB";}
-    if(season==="printemps"){skyColor="#a3e7a3";roadColor="#606060";borderColor="#888";}
-    if(season==="ete"){skyColor="#87CEEB";roadColor="#C2B280";borderColor="#EED9A5";}
-    if(season==="automne"){skyColor="#deb887";roadColor="#604020";borderColor="#402810";}
-
-    ctx.fillStyle=skyColor; ctx.fillRect(0,0,W,H);
-    ctx.fillStyle=borderColor; ctx.fillRect(0,0,80,H); ctx.fillRect(W-80,0,80,H);
-    ctx.fillStyle=roadColor; ctx.fillRect(80,0,W-160,H);
-
-    ctx.strokeStyle="#888"; ctx.lineWidth=2;
+    ctx.fillStyle="#303030";ctx.fillRect(0,0,W,H);
+    ctx.fillStyle="#606060";ctx.fillRect(0,0,80,H);ctx.fillRect(W-80,0,80,H);
+    ctx.strokeStyle="#888";ctx.lineWidth=2;
     LANES.forEach(x=>{ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();});
-
-    // décor saison
-    if(season==="hiver"){ctx.strokeStyle="#DDD";ctx.lineWidth=2;for(let y=-100;y<H;y+=60){ctx.beginPath();ctx.moveTo(100,(y+offset)%H);ctx.lineTo(120,(y+offset)%H);ctx.stroke();}}
-    if(season==="printemps"){ctx.fillStyle="pink";for(let i=0;i<10;i++){let x=Math.random()*(W-160)+80;let y=(Math.random()*H+offset)%H;ctx.beginPath();ctx.arc(x,y,2,0,2*Math.PI);ctx.fill();}}
-    if(season==="ete"){for(let y=0;y<H;y+=80){ctx.drawImage(CACTUS_IMG,20,(y+offset)%H);ctx.drawImage(CACTUS_IMG,W-30,(y+offset)%H);}}
-    if(season==="automne"){ctx.fillStyle="green";for(let y=0;y<H;y+=100){ctx.fillRect(10,(y+offset)%H,20,40);ctx.fillRect(W-30,(y+offset)%H,20,40);}}
+    for(let y=-100;y<H;y+=160*1.65){ctx.fillStyle="#777";ctx.fillRect(10,(y+offset)%H,60,120);ctx.fillStyle="#777";ctx.fillRect(W-70,(y+offset)%H,60,120);}
 }
-function drawUI(){ctx.fillStyle="white";ctx.font="20px Arial";ctx.fillText("Score : "+score,10,25);if(gameOver){ctx.fillStyle="red";ctx.fillText("GAME OVER - appuyez sur R ou touchez pour restart",40,H/2);}}
+function drawUI(){
+    ctx.fillStyle="white";ctx.font="20px Arial";ctx.fillText("Score : "+score,10,25);
+    ctx.fillStyle="gold";ctx.fillText("Best : "+bestScore,10,50);
+    if(gameOver && !boutiqueOpen){
+        ctx.fillStyle="rgba(0,0,0,0.7)";
+        ctx.fillRect(50,H/2-120,380,240);
+        ctx.fillStyle="#ff4444";ctx.font="30px Arial";ctx.fillText("GAME OVER",130,H/2-70);
+        // boutons
+        ctx.fillStyle="#44ff44";ctx.fillRect(100,H/2-20,120,50);ctx.fillStyle="#fff";ctx.fillText("Rejouer",120,H/2+15);
+        ctx.fillStyle="#4488ff";ctx.fillRect(260,H/2-20,120,50);ctx.fillStyle="#fff";ctx.fillText("Boutique",280,H/2+15);
+    }
+    if(boutiqueOpen) drawBoutique();
+}
+
+// ---------- BOUTIQUE ----------
+let camionLevel=1,capacite=5,gosses=50;
+const upgrades=[
+    {lvl:1,capa:5,prix:5},{lvl:2,capa:10,prix:10},{lvl:3,capa:20,prix:20},
+    {lvl:4,capa:50,prix:50},{lvl:5,capa:100,prix:100},{lvl:6,capa:200,prix:200},
+    {lvl:7,capa:500,prix:500}
+];
+function drawBoutique(){
+    ctx.fillStyle="#222";ctx.fillRect(30,50,W-60,H-100);
+    ctx.fillStyle="#ffd700";ctx.font="24px Arial";ctx.fillText("BOUTIQUE - Améliore ta camionnette",50,90);
+    upgrades.forEach((u,i)=>{
+        let y=130+i*60;
+        ctx.fillStyle="#333";ctx.fillRoundRect(40,y,400,50,10);
+        ctx.fillStyle=i+1<=camionLevel?"#88ff88":"#888";
+        ctx.fillRoundRect(40+5,y+5,80,40,8);
+        ctx.fillStyle="#fff";
+        ctx.fillText("Lvl "+u.lvl,50,y+32);
+        ctx.fillStyle="#ffaa00";
+        ctx.fillText("Capacité : "+u.capa,150,y+32);
+        ctx.fillStyle="#ff88ff";
+        ctx.fillText("Prix : "+u.prix+" gosses",300,y+32);
+    });
+    ctx.fillStyle="#ff4444";ctx.fillRect(W/2-60,H-80,120,40);ctx.fillStyle="#fff";ctx.fillText("Retour",W/2-40,H-50);
+}
 
 // ---------- RESTART ----------
-function restart(){children=[];police=[];obstacles=[];score=0;playerLane=1;playerRect.x=LANES[playerLane];gameOver=false;}
+function restart(){children=[];police=[];obstacles=[];score=0;playerLane=1;playerRect.x=LANES[playerLane];gameOver=false;boutiqueOpen=false;}
 
 // ---------- LOOP ----------
 let lastTime=0,bgOffset=0;
 function loop(time){
     let dt=time-lastTime; lastTime=time;
-    let speed=(BASE_SPEED+score*0.03)*(dt/16.6667);
-    bgOffset+=speed;
+    let speed=(BASE_SPEED+score*0.03)*(dt/16.6667); // NORMALISATION FPS
+    if(!gameOver) bgOffset+=speed;
 
-    if(!gameOver){
+    if(!gameOver && !boutiqueOpen){
         if(time-lastSpawn>SPAWN_DELAY){spawnObjects();lastSpawn=time;}
         children.forEach((c,i)=>{c.y+=speed;if(c.y>H) children.splice(i,1);if(isColliding(playerRect,c)){score++;children.splice(i,1);}});
         police.forEach((p,i)=>{p.y+=speed;if(p.y>H) police.splice(i,1);if(isColliding(playerRect,p)){gameOver=true;}});
         obstacles.forEach((o,i)=>{o.y+=speed;if(o.y>H) obstacles.splice(i,1);if(isColliding(playerRect,o)){gameOver=true;}});
+        if(score>bestScore){bestScore=score;localStorage.setItem("bestScore",bestScore);}
     }
 
     drawBackground(bgOffset);
@@ -121,17 +134,75 @@ function loop(time){
 }
 requestAnimationFrame(loop);
 
-// ---------- CONTROLES PC ----------
+// ---------- CONTROLES ----------
 document.addEventListener("keydown",e=>{
-    if(!gameOver){if(e.key==="ArrowLeft"&&playerLane>0)playerLane--;if(e.key==="ArrowRight"&&playerLane<2)playerLane++;playerRect.x=LANES[playerLane];}
-    else if(e.key==="r"){restart();}
+    if(!gameOver){
+        if(e.key==="ArrowLeft" && playerLane>0) playerLane--;
+        if(e.key==="ArrowRight" && playerLane<2) playerLane++;
+        playerRect.x=LANES[playerLane];
+    }else if(e.key==="r"){restart();}
 });
 
-// ---------- TOUCH & SWIPE MOBILE ----------
-let touchStartX=null,swipeLocked=false;
-canvas.addEventListener("touchstart", e => {e.preventDefault(); if(gameOver){restart(); return;} touchStartX=e.touches[0].clientX; swipeLocked=false;});
-canvas.addEventListener("touchmove", e => {if(touchStartX===null||swipeLocked)return; let diff=e.touches[0].clientX-touchStartX; if(diff>40&&playerLane<2){playerLane++;playerRect.x=LANES[playerLane];swipeLocked=true;} if(diff<-40&&playerLane>0){playerLane--;playerRect.x=LANES[playerLane];swipeLocked=true;}});
+canvas.addEventListener("click", e=>{
+    if(gameOver && !boutiqueOpen){
+        let mx=e.offsetX,my=e.offsetY;
+        if(mx>100 && mx<220 && my>H/2-20 && my<H/2+30){restart();}
+        if(mx>260 && mx<380 && my>H/2-20 && my<H/2+30){boutiqueOpen=true;}
+    } else if(boutiqueOpen){
+        let mx=e.offsetX,my=e.offsetY;
+        // retour
+        if(mx>W/2-60 && mx<W/2+60 && my>H-80 && my<H-40){boutiqueOpen=false;}
+        // acheter upgrades
+        upgrades.forEach((u,i)=>{
+            let y=130+i*60;
+            if(mx>40 && mx<440 && my>y && my<y+50 && camionLevel<u.lvl && gosses>=u.prix){
+                camionLevel=u.lvl;
+                capacite=u.capa;
+                gosses-=u.prix;
+            }
+        });
+    }
+});
+
+// ---------- TOUCH MOBILE ----------
+let touchStartX=null, swipeLocked=false;
+canvas.addEventListener("touchstart", e => { 
+    e.preventDefault();
+    if(gameOver && !boutiqueOpen){
+        let t=e.touches[0];
+        let mx=t.clientX,my=t.clientY;
+        if(mx>100 && mx<220 && my>H/2-20 && my<H/2+30){restart();}
+        if(mx>260 && mx<380 && my>H/2-20 && my<H/2+30){boutiqueOpen=true;}
+        return;
+    }
+    if(boutiqueOpen) return;
+    touchStartX=e.touches[0].clientX;
+    swipeLocked=false;
+});
+canvas.addEventListener("touchmove", e => {
+    if(touchStartX===null || swipeLocked) return;
+    let diff=e.touches[0].clientX-touchStartX;
+    if(diff>40 && playerLane<2){playerLane++;playerRect.x=LANES[playerLane];swipeLocked=true;}
+    if(diff<-40 && playerLane>0){playerLane--;playerRect.x=LANES[playerLane];swipeLocked=true;}
+});
 canvas.addEventListener("touchend", ()=>{touchStartX=null; swipeLocked=false;});
+
+// ---------- ROUND RECT POLYFILL ----------
+CanvasRenderingContext2D.prototype.fillRoundRect = function(x,y,w,h,r){
+    if(!r) r=5;
+    this.beginPath();
+    this.moveTo(x+r,y);
+    this.lineTo(x+w-r,y);
+    this.quadraticCurveTo(x+w,y,x+w,y+r);
+    this.lineTo(x+w,y+h-r);
+    this.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    this.lineTo(x+r,y+h);
+    this.quadraticCurveTo(x,y+h,x,y+h-r);
+    this.lineTo(x,y+r);
+    this.quadraticCurveTo(x,y,x+r,y);
+    this.closePath();
+    this.fill();
+};
 </script>
 </body>
 </html>
