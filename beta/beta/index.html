@@ -25,10 +25,9 @@ let playerRect={x:LANES[playerLane],y:PLAYER_Y,w:60,h:90};
 
 let children=[],police=[],obstacles=[];
 let score=0,gameOver=false,lastSpawn=0,boutiqueOpen=false;
-let bestScore=Number(localStorage.getItem("bestScore")||0);
+let gosses=Number(localStorage.getItem("gosses")||20); // <-- solde actuel
 
 // ---------- TEXTURES ----------
-
 function makeVan(){let s=document.createElement("canvas");s.width=60;s.height=90;let c=s.getContext("2d");c.fillStyle="#dddddd";c.fillRect(5,5,50,80);c.fillStyle="#78b4ff";c.fillRect(10,8,40,18);c.fillStyle="#aad2ff";c.fillRect(10,40,40,20);c.fillStyle="#ffff78";c.beginPath();c.arc(15,5,4,0,2*Math.PI);c.fill();c.beginPath();c.arc(45,5,4,0,2*Math.PI);c.fill();c.fillStyle="#1e1e1e";c.fillRect(0,20,5,18);c.fillRect(55,20,5,18);c.fillRect(0,55,5,18);c.fillRect(55,55,5,18);return s;}
 function makeChild(){let s=document.createElement("canvas");s.width=40;s.height=55;let c=s.getContext("2d");c.fillStyle="#ffdcb4";c.beginPath();c.arc(20,12,10,0,2*Math.PI);c.fill();c.fillStyle="#000";c.beginPath();c.arc(16,12,2,0,2*Math.PI);c.fill();c.beginPath();c.arc(24,12,2,0,2*Math.PI);c.fill();c.fillStyle="#ff5050";c.fillRect(10,22,20,22);c.strokeStyle="#3c3c3c";c.lineWidth=3;c.beginPath();c.moveTo(15,44);c.lineTo(15,54);c.stroke();c.beginPath();c.moveTo(25,44);c.lineTo(25,54);c.stroke();return s;}
 function makePolice(){let s=document.createElement("canvas");s.width=40;s.height=55;let c=s.getContext("2d");c.fillStyle="#b4b4ff";c.beginPath();c.arc(20,12,10,0,2*Math.PI);c.fill();c.fillStyle="#000";c.beginPath();c.arc(16,12,2,0,2*Math.PI);c.fill();c.beginPath();c.arc(24,12,2,0,2*Math.PI);c.fill();c.fillStyle="#000078";c.fillRect(10,22,20,22);c.strokeStyle="#3c3c3c";c.lineWidth=3;c.beginPath();c.moveTo(15,44);c.lineTo(15,54);c.stroke();c.beginPath();c.moveTo(25,44);c.lineTo(25,54);c.stroke();return s;}
@@ -67,8 +66,8 @@ function drawBackground(offset){
     for(let y=-100;y<H;y+=160*1.65){ctx.fillStyle="#777";ctx.fillRect(10,(y+offset)%H,60,120);ctx.fillStyle="#777";ctx.fillRect(W-70,(y+offset)%H,60,120);}
 }
 function drawUI(){
-    ctx.fillStyle="white";ctx.font="20px Arial";ctx.fillText("Score : "+score,10,25);
-    ctx.fillStyle="gold";ctx.fillText("Best : "+bestScore,10,50);
+    ctx.fillStyle="white";ctx.font="20px Arial";
+    ctx.fillText("Gosses : "+gosses,10,25);
     if(gameOver && !boutiqueOpen){
         ctx.fillStyle="rgba(0,0,0,0.7)";
         ctx.fillRect(50,H/2-120,380,240);
@@ -81,7 +80,7 @@ function drawUI(){
 }
 
 // ---------- BOUTIQUE ----------
-let camionLevel=1,capacite=5,gosses=50;
+let camionLevel=1,capacite=5;
 const upgrades=[
     {lvl:1,capa:5,prix:5},{lvl:2,capa:10,prix:10},{lvl:3,capa:20,prix:20},
     {lvl:4,capa:50,prix:50},{lvl:5,capa:100,prix:100},{lvl:6,capa:200,prix:200},
@@ -95,8 +94,7 @@ function drawBoutique(){
         ctx.fillStyle="#333";ctx.fillRoundRect(40,y,400,50,10);
         ctx.fillStyle=i+1<=camionLevel?"#88ff88":"#888";
         ctx.fillRoundRect(40+5,y+5,80,40,8);
-        ctx.fillStyle="#fff";
-        ctx.fillText("Lvl "+u.lvl,50,y+32);
+        ctx.fillStyle="#fff";ctx.fillText("Lvl "+u.lvl,50,y+32);
         ctx.fillStyle="#ffaa00";
         ctx.fillText("Capacité : "+u.capa,150,y+32);
         ctx.fillStyle="#ff88ff";
@@ -112,15 +110,22 @@ function restart(){children=[];police=[];obstacles=[];score=0;playerLane=1;playe
 let lastTime=0,bgOffset=0;
 function loop(time){
     let dt=time-lastTime; lastTime=time;
-    let speed=(BASE_SPEED+score*0.03)*(dt/16.6667); // NORMALISATION FPS
+    let speed=(BASE_SPEED+score*0.03)*(dt/16.6667);
     if(!gameOver) bgOffset+=speed;
 
     if(!gameOver && !boutiqueOpen){
         if(time-lastSpawn>SPAWN_DELAY){spawnObjects();lastSpawn=time;}
-        children.forEach((c,i)=>{c.y+=speed;if(c.y>H) children.splice(i,1);if(isColliding(playerRect,c)){score++;children.splice(i,1);}});
+        children.forEach((c,i)=>{
+            c.y+=speed;
+            if(c.y>H) children.splice(i,1);
+            if(isColliding(playerRect,c)){
+                gosses+=1; // <-- gagne 1 gosses par enfant
+                localStorage.setItem("gosses",gosses);
+                children.splice(i,1);
+            }
+        });
         police.forEach((p,i)=>{p.y+=speed;if(p.y>H) police.splice(i,1);if(isColliding(playerRect,p)){gameOver=true;}});
         obstacles.forEach((o,i)=>{o.y+=speed;if(o.y>H) obstacles.splice(i,1);if(isColliding(playerRect,o)){gameOver=true;}});
-        if(score>bestScore){bestScore=score;localStorage.setItem("bestScore",bestScore);}
     }
 
     drawBackground(bgOffset);
@@ -144,21 +149,19 @@ document.addEventListener("keydown",e=>{
 });
 
 canvas.addEventListener("click", e=>{
+    let mx=e.offsetX,my=e.offsetY;
     if(gameOver && !boutiqueOpen){
-        let mx=e.offsetX,my=e.offsetY;
         if(mx>100 && mx<220 && my>H/2-20 && my<H/2+30){restart();}
         if(mx>260 && mx<380 && my>H/2-20 && my<H/2+30){boutiqueOpen=true;}
     } else if(boutiqueOpen){
-        let mx=e.offsetX,my=e.offsetY;
-        // retour
         if(mx>W/2-60 && mx<W/2+60 && my>H-80 && my<H-40){boutiqueOpen=false;}
-        // acheter upgrades
         upgrades.forEach((u,i)=>{
             let y=130+i*60;
             if(mx>40 && mx<440 && my>y && my<y+50 && camionLevel<u.lvl && gosses>=u.prix){
                 camionLevel=u.lvl;
                 capacite=u.capa;
                 gosses-=u.prix;
+                localStorage.setItem("gosses",gosses);
             }
         });
     }
